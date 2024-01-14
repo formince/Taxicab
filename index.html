@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Yunus'Maps</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="map" style="width:100%; height: 70vh"></div>
+    <p id="distance"></p>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+
+    <script>
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            // Radyan cinsinden koordinatları dereceden dönüştür
+            var radlat1 = Math.PI * lat1 / 180;
+            var radlat2 = Math.PI * lat2 / 180;
+            var radlon1 = Math.PI * lon1 / 180;
+            var radlon2 = Math.PI * lon2 / 180;
+            // Yarıçapı dünya yarıçapı olarak al
+            var R = 6371; // Dünya yarıçapı kilometre cinsinden
+            // Uzaklığı hesapla
+            var dLat = radlat2 - radlat1;
+            var dLon = radlon2 - radlon1;
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(radlat1) * Math.cos(radlat2) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            var distance = R * c;
+            return distance.toFixed(2); // Uzaklığı iki ondalık basamağa yuvarla
+        }
+
+        var map = L.map('map').setView([36.8969, 30.7133], 11);
+        mapLink = "<a href='http://openstreetmap.org'>OpenStreetMap</a>";
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { attribution: 'Leaflet &copy; ' + mapLink + ', contribution', maxZoom: 18 }).addTo(map);
+
+        var taxiIcon = L.icon({
+            iconUrl: 'img/taxi.png',
+            iconSize: [70, 70]
+        })
+
+        var startMarker = L.marker([36.8969, 30.7133], { icon: taxiIcon }).addTo(map);
+        var endMarker;
+
+        map.on('click', function (e) {
+            console.log(e);
+
+            if (!endMarker) {
+                endMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+                L.Routing.control({
+                    waypoints: [
+                        L.latLng(startMarker.getLatLng()),
+                        L.latLng(endMarker.getLatLng())
+                    ]
+                }).on('routesfound', function (e) {
+                    var routes = e.routes;
+                    console.log(routes);
+
+                    e.routes[0].coordinates.forEach(function (coord, index) {
+                        setTimeout(function () {
+                            startMarker.setLatLng([coord.lat, coord.lng]);
+                        }, 100 * index)
+                    });
+
+                    var startLat = startMarker.getLatLng().lat;
+                    var startLng = startMarker.getLatLng().lng;
+                    var endLat = endMarker.getLatLng().lat;
+                    var endLng = endMarker.getLatLng().lng;
+
+                    var distance = calculateDistance(startLat, startLng, endLat, endLng);
+                    document.getElementById('distance').innerHTML = "İki nokta arasındaki Öklid uzaklığı: " + distance + " km";
+                }).addTo(map);
+            } else {
+                endMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
+                map.removeControl(map._routing);
+                L.Routing.control({
+                    waypoints: [
+                        L.latLng(startMarker.getLatLng()),
+                        L.latLng(endMarker.getLatLng())
+                    ]
+                }).on('routesfound', function (e) {
+                    var routes = e.routes;
+                    console.log(routes);
+
+                    e.routes[0].coordinates.forEach(function (coord, index) {
+                        setTimeout(function () {
+                            startMarker.setLatLng([coord.lat, coord.lng]);
+                        }, 100 * index)
+                    });
+
+                    var startLat = startMarker.getLatLng().lat;
+                    var startLng = startMarker.getLatLng().lng;
+                    var endLat = endMarker.getLatLng().lat;
+                    var endLng = endMarker.getLatLng().lng;
+
+                    var distance = calculateDistance(startLat, startLng, endLat, endLng);
+                    document.getElementById('distance').innerHTML = "İki nokta arasındaki Öklid uzaklığı: " + distance + " km";
+                }).addTo(map);
+            }
+        });
+    </script>
+</body>
+
+</html>
